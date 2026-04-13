@@ -155,13 +155,27 @@ PASO 6: CONFIGURAR Y LEVANTAR EL BACKEND
       IMPORTANTE: Si la contrasena de PostgreSQL es diferente a "1234",
       cambiar el valor de DATABASE_URL para que coincida.
 
-  6.6 Poblar la base de datos con datos de prueba:
+  6.6 Crear la base de datos automaticamente:
+
+      python setup_db.py
+
+      Este script:
+        - Conecta a PostgreSQL con los datos del .env
+        - Crea la base de datos "fhir_salud_digital" si no existe
+        - Muestra errores claros si algo falla (contrasena, servicio, etc.)
+
+      Si da error de conexion, verificar:
+        1. Que PostgreSQL este corriendo (Servicios de Windows > postgresql)
+        2. Que la contrasena en el .env sea la correcta
+        3. Que el puerto 5432 no este ocupado
+
+  6.7 Poblar la base de datos con datos de prueba:
 
       python seed_db.py
 
       Esto crea las tablas, usuarios, pacientes y observaciones de ejemplo.
 
-  6.7 Levantar el servidor backend:
+  6.8 Levantar el servidor backend:
 
       uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
@@ -302,6 +316,7 @@ RESUMEN RAPIDO (para los que van de prisa)
     python -m venv venv
     venv\Scripts\activate
     pip install -r requirements.txt
+    python setup_db.py
     python seed_db.py
     uvicorn main:app --reload --port 8000
 
