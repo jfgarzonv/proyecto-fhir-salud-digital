@@ -479,7 +479,17 @@ export default function PatientDetail({ patientId, onBack }) {
                 const res = await inferenceAPI.runML(patientId, featureMap);
                 const taskId = res.data.task_id;
                 setMlTaskId(taskId);
-                // Polling
+
+                // Si ya vino DONE (modo local sin orquestador)
+                if (res.data.status === 'DONE') {
+                  const st = await inferenceAPI.status(taskId);
+                  setMlResult(st.data.result);
+                  setMlLoading(false);
+                  loadData();
+                  return;
+                }
+
+                // Polling normal (con orquestador)
                 const poll = setInterval(async () => {
                   try {
                     const st = await inferenceAPI.status(taskId);
@@ -587,6 +597,15 @@ export default function PatientDetail({ patientId, onBack }) {
                         const res = await inferenceAPI.runDL(patientId, img.presigned_url);
                         const taskId = res.data.task_id;
                         setDlTaskId(taskId);
+
+                        if (res.data.status === 'DONE') {
+                          const st = await inferenceAPI.status(taskId);
+                          setDlResult({ ...st.data.result, original_url: img.presigned_url });
+                          setDlLoading(false);
+                          loadData();
+                          return;
+                        }
+
                         const poll = setInterval(async () => {
                           try {
                             const st = await inferenceAPI.status(taskId);

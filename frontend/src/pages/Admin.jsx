@@ -18,6 +18,7 @@ export default function Admin() {
   });
   const [formError, setFormError] = useState('');
   const [confirmAction, setConfirmAction] = useState(null);
+  const [expandedLog, setExpandedLog] = useState(null);
   const [confirmMessage, setConfirmMessage] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -195,6 +196,8 @@ export default function Admin() {
               <table className="data-table">
                 <thead>
                   <tr>
+                    <th style={{width:'40px'}}></th>
+                    <th>ID</th>
                     <th>Accion</th>
                     <th>Usuario</th>
                     <th>Recurso</th>
@@ -204,24 +207,96 @@ export default function Admin() {
                 </thead>
                 <tbody>
                   {auditLog.map((entry) => (
-                    <tr key={entry.id}>
-                      <td className="td-name">{entry.action}</td>
-                      <td>
-                        <div>
-                          <span style={{ fontWeight: 500 }}>{entry.user_name || '\u2014'}</span>
-                          {entry.user_email && (
-                            <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                              {entry.user_email}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td>{entry.resource_type || '\u2014'}</td>
-                      <td>
-                        <span className={`badge ${entry.status === 'SUCCESS' ? 'badge-success' : 'badge-danger'}`}>{entry.status}</span>
-                      </td>
-                      <td className="td-date">{entry.timestamp?.replace('T', ' ').split('.')[0] || '\u2014'}</td>
-                    </tr>
+                    <>
+                      <tr key={entry.id} className={`audit-row ${expandedLog === entry.id ? 'expanded' : ''}`} onClick={() => setExpandedLog(expandedLog === entry.id ? null : entry.id)} style={{cursor:'pointer'}}>
+                        <td style={{textAlign:'center'}}>
+                          <span className={`expand-icon ${expandedLog === entry.id ? 'open' : ''}`}>&#9654;</span>
+                        </td>
+                        <td className="mono" style={{fontSize:'var(--text-xs)',maxWidth:'80px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={entry.id}>
+                          {entry.id?.slice(0, 8)}...
+                        </td>
+                        <td className="td-name">{entry.action}</td>
+                        <td>
+                          <div>
+                            <span style={{ fontWeight: 500 }}>{entry.user_name || '\u2014'}</span>
+                            {entry.user_email && (
+                              <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                                {entry.user_email}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td>{entry.resource_type || '\u2014'}</td>
+                        <td>
+                          <span className={`badge ${entry.status === 'SUCCESS' ? 'badge-success' : 'badge-danger'}`}>{entry.status}</span>
+                        </td>
+                        <td className="td-date">{entry.timestamp?.replace('T', ' ').split('.')[0] || '\u2014'}</td>
+                      </tr>
+                      {expandedLog === entry.id && (() => {
+                        const actionDescriptions = {
+                          'LOGIN': 'El usuario inicio sesion en el sistema',
+                          'LOGOUT': 'El usuario cerro sesion',
+                          'CREATE_PATIENT': 'Se creo un nuevo paciente en el sistema',
+                          'UPDATE_PATIENT': 'Se actualizaron los datos de un paciente',
+                          'DELETE_PATIENT': 'Se elimino (soft delete) un paciente',
+                          'CREATE_OBSERVATION': 'Se registro una nueva observacion clinica',
+                          'UPDATE_OBSERVATION': 'Se modifico una observacion existente',
+                          'DELETE_OBSERVATION': 'Se elimino una observacion clinica',
+                          'SIGN_REPORT': 'Un medico firmo un reporte de riesgo',
+                          'CREATE_RISK_REPORT': 'Se genero un nuevo reporte de riesgo por inferencia',
+                          'UPLOAD_IMAGE': 'Se subio una imagen medica al almacenamiento',
+                          'DELETE_IMAGE': 'Se elimino una imagen medica',
+                          'CREATE_USER': 'Se creo una nueva cuenta de usuario',
+                          'UPDATE_USER': 'Se actualizaron los datos de un usuario',
+                          'DELETE_USER': 'Se elimino una cuenta de usuario',
+                          'INFERENCE_ML': 'Se lanzo un analisis de Machine Learning',
+                          'INFERENCE_DL': 'Se lanzo un analisis de Deep Learning',
+                          'CLOSE_PATIENT': 'Se cerro el expediente de un paciente',
+                          'ACCEPT_HABEAS_DATA': 'El usuario acepto el consentimiento de Habeas Data',
+                        };
+                        const desc = actionDescriptions[entry.action] || 'Accion registrada en el sistema';
+                        return (
+                        <tr key={`${entry.id}-detail`} className="audit-detail-row">
+                          <td colSpan={7}>
+                            <div className="audit-detail-panel">
+                              <p className="audit-detail-desc">{desc}</p>
+                              <div className="audit-detail-grid">
+                                <div className="audit-detail-item">
+                                  <span className="audit-detail-label">ID del registro</span>
+                                  <span className="audit-detail-value mono">{entry.id}</span>
+                                </div>
+                                <div className="audit-detail-item">
+                                  <span className="audit-detail-label">Realizado por</span>
+                                  <span className="audit-detail-value">
+                                    {entry.user_name || 'Desconocido'}
+                                    {entry.user_email && <span style={{display:'block',fontSize:'0.7rem',color:'var(--color-text-muted)'}}>{entry.user_email}</span>}
+                                  </span>
+                                </div>
+                                <div className="audit-detail-item">
+                                  <span className="audit-detail-label">Recurso afectado</span>
+                                  <span className="audit-detail-value">{entry.resource_type || '\u2014'}</span>
+                                </div>
+                                <div className="audit-detail-item">
+                                  <span className="audit-detail-label">ID del recurso</span>
+                                  <span className="audit-detail-value mono" style={{fontSize:'0.7rem'}}>{entry.resource_id || '\u2014'}</span>
+                                </div>
+                                <div className="audit-detail-item">
+                                  <span className="audit-detail-label">Fecha y hora exacta</span>
+                                  <span className="audit-detail-value">{entry.timestamp?.replace('T', ' ') || '\u2014'}</span>
+                                </div>
+                              </div>
+                              {entry.details && Object.keys(entry.details).length > 0 && (
+                                <div style={{marginTop:'12px'}}>
+                                  <span className="audit-detail-label">Datos adicionales</span>
+                                  <pre className="audit-detail-json">{JSON.stringify(entry.details, null, 2)}</pre>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        );
+                      })()}
+                    </>
                   ))}
                 </tbody>
               </table>

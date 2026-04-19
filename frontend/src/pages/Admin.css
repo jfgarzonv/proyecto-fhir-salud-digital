@@ -50,3 +50,94 @@
   margin-bottom: var(--space-6);
 }
 
+/* ── Audit Log Expandable Rows ── */
+.audit-row {
+  transition: background 0.15s;
+}
+.audit-row:hover {
+  background: rgba(255,255,255,0.02);
+}
+.audit-row.expanded {
+  background: rgba(59, 130, 246, 0.05);
+  border-bottom-color: transparent;
+}
+
+.expand-icon {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  transition: transform 0.2s;
+}
+.expand-icon.open {
+  transform: rotate(90deg);
+  color: var(--color-accent);
+}
+
+.audit-detail-row td {
+  padding: 0 !important;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.audit-detail-panel {
+  padding: 12px 16px 16px 52px;
+  background: var(--color-bg-primary, #0a0e1a);
+  border-top: 1px solid rgba(59, 130, 246, 0.15);
+  animation: slideDown 0.15s ease;
+}
+
+.audit-detail-desc {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(59, 130, 246, 0.06);
+  border-left: 3px solid var(--color-accent, #3b82f6);
+  border-radius: 0 6px 6px 0;
+  line-height: 1.4;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 400px; }
+}
+
+.audit-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.audit-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.audit-detail-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.audit-detail-value {
+  font-size: 0.8rem;
+  color: var(--color-text-primary);
+  word-break: break-all;
+}
+
+.audit-detail-json {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono, monospace);
+  color: var(--color-text-secondary);
+  overflow-x: auto;
+  margin-top: 4px;
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+}

@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from database import SessionLocal, engine
-from models import Base, User, Patient, Observation
+from models import Base, User, Patient, Observation, RiskReport, AuditLog
 from auth import hash_password
 
 def seed():
@@ -31,11 +31,13 @@ def seed():
             if resp != "s":
                 print("Seed cancelado")
                 return
-            # Borrar todo en orden
+            # Borrar todo en orden (respetando FK constraints)
             print("Limpiando datos existentes...")
-            db.query(Observation).delete()
-            db.query(Patient).delete()
-            db.query(User).delete()
+            db.execute(
+                __import__('sqlalchemy').text(
+                    "TRUNCATE TABLE audit_log, risk_reports, observations, patients, users, model_feedback CASCADE"
+                )
+            )
             db.commit()
 
         # ══════════════════════════════════════
@@ -159,9 +161,12 @@ def seed():
             {"code": "2339-0",  "display": "Glucosa",            "unit": "mg/dL",  "min": 70,  "max": 200},
             {"code": "55284-4", "display": "Presión Arterial",   "unit": "mmHg",   "min": 90,  "max": 180},
             {"code": "39156-5", "display": "BMI",                "unit": "kg/m2",  "min": 18,  "max": 40},
-            {"code": "14749-6", "display": "Insulina",           "unit": "µU/mL",  "min": 2,   "max": 30},
+            {"code": "14749-6", "display": "Insulina",           "unit": "µU/mL",  "min": 2,   "max": 300},
+            {"code": "30525-0", "display": "Edad",               "unit": "años",   "min": 18,  "max": 80},
             {"code": "8310-5",  "display": "Temperatura",        "unit": "°C",     "min": 35,  "max": 40},
             {"code": "8867-4",  "display": "Frecuencia Cardíaca","unit": "lpm",    "min": 50,  "max": 120},
+            {"code": "29463-7", "display": "Peso Corporal",      "unit": "kg",     "min": 45,  "max": 120},
+            {"code": "8302-2",  "display": "Estatura",           "unit": "cm",     "min": 140, "max": 200},
         ]
 
         import random
@@ -188,7 +193,6 @@ def seed():
         # ══════════════════════════════════════
         print("\nCreando risk reports de prueba...")
 
-        from models import RiskReport
         reports_count = 0
 
         # Crear reports para los primeros 10 pacientes (mix firmados/pendientes)
