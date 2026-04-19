@@ -44,6 +44,9 @@ export default function PatientDetail({ patientId, onBack }) {
   const [dlLoading, setDlLoading] = useState(false);
   const [dlError, setDlError] = useState('');
 
+  // Delete Image confirm
+  const [deleteConfirmImage, setDeleteConfirmImage] = useState(null);
+
   useEffect(() => { loadData(); }, [patientId]);
 
   const loadData = async () => {
@@ -418,15 +421,7 @@ export default function PatientDetail({ patientId, onBack }) {
                       {canUpload && (
                         <button
                           className="btn btn-danger btn-sm"
-                          onClick={async () => {
-                            if (!confirm('Eliminar esta imagen?')) return;
-                            try {
-                              await imagesAPI.delete(img.id);
-                              loadData();
-                            } catch (err) {
-                              alert(err.response?.data?.detail || 'Error eliminando imagen');
-                            }
-                          }}
+                          onClick={() => setDeleteConfirmImage(img)}
                         >
                           Eliminar
                         </button>
@@ -859,6 +854,46 @@ export default function PatientDetail({ patientId, onBack }) {
             {lightboxImage.description && (
               <p className="lightbox-desc">{lightboxImage.description}</p>
             )}
+          </div>
+        </div>
+      )}
+      {/* Modal Confirmar Eliminación de Imagen */}
+      {deleteConfirmImage && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirmImage(null)}>
+          <div className="modal animate-fade-in" onClick={e => e.stopPropagation()} style={{maxWidth:'420px'}}>
+            <div className="modal-header">
+              <h2>Confirmar eliminacion</h2>
+              <button className="modal-close" onClick={() => setDeleteConfirmImage(null)}>X</button>
+            </div>
+            <div className="modal-body" style={{textAlign:'center',padding:'24px'}}>
+              <div style={{fontSize:'48px',marginBottom:'12px'}}>&#9888;</div>
+              <p style={{color:'var(--color-text-secondary)',marginBottom:'8px'}}>
+                Estas seguro de eliminar la imagen:
+              </p>
+              <p style={{fontWeight:600,color:'var(--color-text-primary)',marginBottom:'20px'}}>
+                {deleteConfirmImage.original_filename}
+              </p>
+              <div style={{display:'flex',gap:'12px',justifyContent:'center'}}>
+                <button className="btn btn-secondary" onClick={() => setDeleteConfirmImage(null)}>
+                  Cancelar
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={async () => {
+                    try {
+                      await imagesAPI.delete(deleteConfirmImage.id);
+                      setDeleteConfirmImage(null);
+                      loadData();
+                    } catch (err) {
+                      alert(err.response?.data?.detail || 'Error eliminando imagen');
+                      setDeleteConfirmImage(null);
+                    }
+                  }}
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
