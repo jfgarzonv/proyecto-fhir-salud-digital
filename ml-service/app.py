@@ -1,6 +1,3 @@
-# ml-service/app.py — Microservicio ML Tabular (Mock con SHAP)
-# Simula predicción de diabetes tipo PIMA con SHAP values
-
 import random
 import math
 from fastapi import FastAPI
@@ -67,9 +64,8 @@ def compute_risk(features: dict) -> dict:
         shap_val = (val - normal) / max(1, (high - normal)) * weight
         shap_values[feat] = round(shap_val, 4)
 
-    # Clamp score entre 0.05 y 0.98
+
     score = max(0.05, min(0.98, score))
-    # Agregar ruido mínimo para realismo
     score += random.uniform(-0.03, 0.03)
     score = max(0.02, min(0.99, score))
 

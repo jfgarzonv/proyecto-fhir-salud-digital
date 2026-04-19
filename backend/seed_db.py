@@ -9,8 +9,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from database import SessionLocal, engine
-from models import Base, User, Patient, Observation, RiskReport, AuditLog
+from models import Base, User, Patient, Observation, RiskReport, AuditLog, Image
 from auth import hash_password
+from encryption import encrypt_field
 
 def seed():
     """Crea las tablas y pobla con datos de prueba."""
@@ -237,6 +238,83 @@ def seed():
 
         print(f"   {reports_count} risk reports creados ({reports_count // 2} firmados, {reports_count - reports_count // 2} pendientes)")
 
+        # ══════════════════════════════════════
+        # IMÁGENES MÉDICAS EN MinIO (≥ 15 pacientes)
+        # ══════════════════════════════════════
+        print("\nCreando imágenes médicas en MinIO...")
+        img_count = 0
+        try:
+            from minio_client import upload_image as minio_upload, check_connection
+            if not check_connection():
+                print("   MinIO no disponible, omitiendo imágenes")
+            else:
+                import struct, zlib
+
+                def _make_png(width, height, r, g, b):
+                    """Genera un PNG sintético sin PIL."""
+                    def chunk(chunk_type, data):
+                        c = chunk_type + data
+                        return struct.pack('>I', len(data)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
+
+                    header = b'\x89PNG\r\n\x1a\n'
+                    ihdr = chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0))
+                    # Raw image data: filter byte 0 + RGB pixels per row
+                    raw = b''
+                    for y in range(height):
+                        raw += b'\x00'  # filter byte
+                        for x in range(width):
+                            noise_r = min(255, max(0, r + random.randint(-30, 30)))
+                            noise_g = min(255, max(0, g + random.randint(-30, 30)))
+                            noise_b = min(255, max(0, b + random.randint(-30, 30)))
+                            raw += struct.pack('BBB', noise_r, noise_g, noise_b)
+                    idat = chunk(b'IDAT', zlib.compress(raw))
+                    iend = chunk(b'IEND', b'')
+                    return header + ihdr + idat + iend
+
+                modalities = ["FUNDUS", "XRAY", "DERM", "CT"]
+                colors = [
+                    (180, 80, 60),   # Retinal fundus (rojizo)
+                    (200, 200, 200), # X-Ray (gris)
+                    (170, 130, 100), # Dermoscopy (piel)
+                    (100, 100, 110), # CT (gris oscuro)
+                ]
+
+                for i, patient in enumerate(patients[:20]):
+                    mod_idx = i % len(modalities)
+                    modality = modalities[mod_idx]
+                    r, g, b = colors[mod_idx]
+
+                    # Generar imagen sintética 64x64
+                    png_data = _make_png(64, 64, r, g, b)
+                    filename = f"{modality.lower()}_paciente_{i+1}.png"
+
+                    # Subir a MinIO
+                    object_key = minio_upload(
+                        file_data=png_data,
+                        patient_id=str(patient.id),
+                        filename=filename,
+                        content_type="image/png",
+                    )
+
+                    # Registrar en BD con key cifrada
+                    image_record = Image(
+                        patient_id=patient.id,
+                        minio_key=encrypt_field(object_key),
+                        original_filename=filename,
+                        content_type="image/png",
+                        modality=modality,
+                        description=f"Imagen {modality} de prueba - Paciente {patient.name}",
+                        uploaded_by=admin.id,
+                    )
+                    db.add(image_record)
+                    img_count += 1
+
+                db.flush()
+                print(f"   {img_count} imágenes subidas a MinIO y registradas")
+
+        except Exception as e:
+            print(f"   Error con imágenes MinIO (no crítico): {e}")
+
         # ── Commit todo ──
         db.commit()
 
@@ -252,7 +330,7 @@ def seed():
         print("│ Médico 2     │ medico2@clinica.com  │ Medico2026!    │")
         print("│ Paciente     │ paciente@clinica.com │ Paciente2026!  │")
         print("└──────────────┴──────────────────────┴────────────────┘")
-        print(f"\n Resumen: {4} usuarios, {len(patients)} pacientes, {obs_count} observaciones, {reports_count} risk reports")
+        print(f"\n Resumen: {4} usuarios, {len(patients)} pacientes, {obs_count} observaciones, {reports_count} risk reports, {img_count} imágenes")
         print("\n API Keys para headers:")
         print("  X-Access-Key: master-access-key")
         print("  X-Permission-Key: admin-permission | medico-permission | paciente-permission")
